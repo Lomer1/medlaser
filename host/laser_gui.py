@@ -51,7 +51,7 @@ class App:
         self.count = tk.IntVar(value=1)
         self.armed = tk.IntVar(value=0)
         self.freq_box = self._row(form, 0, "Частота, Гц", self.freq, 1, 10)
-        self.level_box = self._row(form, 1, "Мощность, 0…2000", self.level, 0, 2000)
+        self.level_box = self._row(form, 1, "Мощность, %", self.level, 0, 100)
         self.charge_box = self._row(form, 2, "Заряд конденсатора, мс", self.charge, 1, 800)
         self.fire_box = self._row(form, 3, "Поджиг, мс", self.fire, 1, 20)
         self.count_box = self._row(form, 4, "Импульсов, 0 = пока не Stop", self.count, 0, 100000)
@@ -63,10 +63,8 @@ class App:
             "PA0 — заряд конденсатора\n"
             "PA1 — поджиг\n"
             "PA4 — мощность\n"
-            "PA5 — педаль\n"
             "PA6 — расход воды\n"
-            "GND — земля гребёнки\n"
-            "5V не подключать"
+            "GND — земля гребёнки"
         )
         ttk.Label(form, text=wires, wraplength=520).grid(
             row=6, column=0, columnspan=2, sticky="w", pady=(8, 0)
@@ -160,7 +158,7 @@ class App:
             return
         self.waiting = True
         if not self.quiet:
-            self.write_log("> " + cmd)
+            self.write_log("> " + self._log_cmd(cmd))
 
     def drain(self):
         try:
@@ -195,10 +193,19 @@ class App:
                 f"charge {self._box_int(self.charge_box, 1, 800)}",
                 f"fire {self._box_int(self.fire_box, 1, 20)}",
                 f"freq {self._box_int(self.freq_box, 1, 10)}",
-                f"level {self._box_int(self.level_box, 0, 2000)}",
+                f"level {self._power_level()}",
                 f"count {self._box_int(self.count_box, 0, 100000)}",
             ]
         )
+
+    def _log_cmd(self, cmd):
+        if cmd.startswith("level "):
+            return f"мощность {int(cmd.split()[1]) // 20}%"
+        return cmd
+
+    def _power_level(self):
+        # 0…100 % на экране, на плате по-прежнему 0…2000.
+        return self._box_int(self.level_box, 0, 100) * 20
 
     def _box_int(self, box, lo, hi):
         try:
@@ -213,7 +220,7 @@ class App:
                 f"charge {self._box_int(self.charge_box, 1, 800)}",
                 f"fire {self._box_int(self.fire_box, 1, 20)}",
                 f"freq {self._box_int(self.freq_box, 1, 10)}",
-                f"level {self._box_int(self.level_box, 0, 2000)}",
+                f"level {self._power_level()}",
                 f"count {self._box_int(self.count_box, 0, 100000)}",
                 f"arm {1 if self.armed.get() else 0}",
                 "run",

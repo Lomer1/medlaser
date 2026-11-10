@@ -78,11 +78,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t pin)
   }
 }
 
-static int flow_ok(void)
-{
-  return flow_ready && flow_x10 >= 10U;
-}
-
 static int timing_ok(unsigned freq, unsigned charge, unsigned fire)
 {
   unsigned period;
@@ -241,10 +236,6 @@ static void handle_line(char *s)
       cdc_write("err timing\r\n");
       return;
     }
-    if (!flow_ok()) {
-      cdc_write("err flow\r\n");
-      return;
-    }
     shots_done = 0;
     period_ms = 1000U / freq_hz;
     running = 1;
@@ -372,10 +363,7 @@ static void pedal_poll(uint32_t now)
   }
   pedal_down = down;
   if (down) {
-    if (!armed || running || !timing_ok(freq_hz, charge_ms, fire_ms) || !flow_ok()) {
-      if (armed && !running && !flow_ok()) {
-        cdc_write("err flow\r\n");
-      }
+    if (!armed || running || !timing_ok(freq_hz, charge_ms, fire_ms)) {
       return;
     }
     shots_done = 0;
@@ -399,10 +387,6 @@ void laser_poll(void)
   usb_rx_poll();
   now = HAL_GetTick();
   flow_poll(now);
-  if (running && flow_ready && flow_x10 < 10U) {
-    do_stop("evt stop flow\r\n");
-    return;
-  }
   pedal_poll(now);
   if (running && watch && !pedal_run && (now - last_rx_ms) > 1500U) {
     do_stop("evt stop timeout\r\n");
